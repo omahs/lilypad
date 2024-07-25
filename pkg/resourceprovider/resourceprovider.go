@@ -52,6 +52,9 @@ type ResourceProviderOfferOptions struct {
 
 	// which mediators and directories this RP will trust
 	Services data.ServiceConfig
+
+	// if you want to enable the allowlist
+	EnableAllowlist bool
 }
 
 // this configures the pow we will keep track of

@@ -52,9 +52,10 @@ func GetDefaultResourceProviderOfferOptions() resourceprovider.ResourceProviderO
 		DefaultPricing:  GetDefaultPricingOptions(),
 		DefaultTimeouts: GetDefaultTimeoutOptions(),
 		// allows an RP to list specific prices for each module
-		ModulePricing:  map[string]data.DealPricing{},
-		ModuleTimeouts: map[string]data.DealTimeouts{},
-		Services:       GetDefaultServicesOptions(),
+		ModulePricing:   map[string]data.DealPricing{},
+		ModuleTimeouts:  map[string]data.DealTimeouts{},
+		Services:        GetDefaultServicesOptions(),
+		EnableAllowlist: GetDefaultServeOptionBool("ENABLE_ALLOWLIST", false),
 	}
 }
 
@@ -78,6 +79,10 @@ func AddResourceProviderOfferCliFlags(cmd *cobra.Command, offerOptions *resource
 	cmd.PersistentFlags().StringArrayVar(
 		&offerOptions.Modules, "offer-modules", offerOptions.Modules,
 		`The modules you are willing to run (OFFER_MODULES).`,
+	)
+	cmd.PersistentFlags().BoolVar(
+		&offerOptions.EnableAllowlist, "enable-allowlist", offerOptions.EnableAllowlist,
+		`Enable allowlist for job creation (ENABLE_ALLOWLIST).`,
 	)
 	AddPricingModeCliFlags(cmd, &offerOptions.Mode)
 	AddPricingCliFlags(cmd, &offerOptions.DefaultPricing)
@@ -120,6 +125,12 @@ func AddResourceProviderCliFlags(cmd *cobra.Command, options *resourceprovider.R
 
 func AddPowSignalCliFlags(cmd *cobra.Command, options *PowSignalOptions) {
 	AddWeb3CliFlags(cmd, &options.Web3)
+}
+func AddResourceProviderAllowlistCliFlags(cmd *cobra.Command, options *resourceprovider.ResourceProviderOptions) {
+	cmd.PersistentFlags().BoolVar(
+		&options.Offers.EnableAllowlist, "enable-allowlist", options.Offers.EnableAllowlist,
+		`Enable allowlist for job creation (ENABLE_ALLOWLIST).`,
+	)
 }
 
 func CheckResourceProviderOfferOptions(options resourceprovider.ResourceProviderOfferOptions) error {
