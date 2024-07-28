@@ -68,10 +68,10 @@ func NewSolverController(
 		store:      store,
 		options:    options,
 		log:        system.NewServiceLogger(system.SolverService),
+		allowlist:  nil, // Initialize as nill
 	}
 
 	// pull the allowlist
-
 	allowlist, err := allowlist.PullAllowlist()
 	if err != nil {
 		log.Warn().Err(err).Msg("Failed to pull allowlist, proceeding without it")
