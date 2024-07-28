@@ -7,6 +7,7 @@ import (
 	"github.com/lilypad-tech/lilypad/pkg/allowlist"
 	"github.com/lilypad-tech/lilypad/pkg/data"
 	"github.com/lilypad-tech/lilypad/pkg/solver/store"
+	"github.com/lilypad-tech/lilypad/pkg/system"
 	"github.com/rs/zerolog/log"
 )
 
@@ -164,7 +165,9 @@ func getMatchingDeals(
 		return nil, err
 	}
 
+	// loop over job offers
 	for _, jobOffer := range jobOffers {
+		// loop over resource offers
 		matchingResourceOffers := []data.ResourceOffer{}
 		for _, resourceOffer := range resourceOffers {
 			decision, err := db.GetMatchDecision(resourceOffer.ID, jobOffer.ID)
@@ -172,6 +175,7 @@ func getMatchingDeals(
 				return nil, err
 			}
 
+			// if this exists it means we've already tried to match the two elements and should not try again
 			if decision != nil {
 				continue
 			}
@@ -186,7 +190,10 @@ func getMatchingDeals(
 			}
 		}
 
+		// yay - we've got some matching resource offers
+		// let's choose the cheapest one
 		if len(matchingResourceOffers) > 0 {
+			// now let's order the matching resource offers by price
 			sort.Sort(ListOfResourceOffers(matchingResourceOffers))
 
 			cheapestResourceOffer := matchingResourceOffers[0]
@@ -195,6 +202,7 @@ func getMatchingDeals(
 				return nil, err
 			}
 
+			// add the match decision for this job offer
 			for _, matchingResourceOffer := range matchingResourceOffers {
 				addDealID := ""
 				if cheapestResourceOffer.ID == matchingResourceOffer.ID {
@@ -210,6 +218,12 @@ func getMatchingDeals(
 			deals = append(deals, deal)
 		}
 	}
+
+	log.Debug().
+		Int("jobOffers", len(jobOffers)).
+		Int("resourceOffers", len(resourceOffers)).
+		Int("deals", len(deals)).
+		Msgf(system.GetServiceString(system.SolverService, "Solver solving"))
 
 	return deals, nil
 }
