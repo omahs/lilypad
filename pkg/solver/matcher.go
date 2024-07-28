@@ -4,9 +4,9 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/lilypad-tech/lilypad/pkg/allowlist"
 	"github.com/lilypad-tech/lilypad/pkg/data"
 	"github.com/lilypad-tech/lilypad/pkg/solver/store"
-	"github.com/lilypad-tech/lilypad/pkg/system"
 	"github.com/rs/zerolog/log"
 )
 
@@ -24,6 +24,7 @@ func (a ListOfResourceOffers) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
 func doOffersMatch(
 	resourceOffer data.ResourceOffer,
 	jobOffer data.JobOffer,
+	allowlist allowlist.Allowlist,
 ) bool {
 	if resourceOffer.Spec.CPU < jobOffer.Spec.CPU {
 		log.Trace().
@@ -81,6 +82,28 @@ func doOffersMatch(
 		}
 	}
 
+	// Allowlist check
+	moduleID, err := data.GetModuleID(jobOffer.Module)
+	if err != nil {
+		log.Error().Err(err).Msg("error getting module ID")
+		return false
+	}
+
+	isAllowed := false
+	for _, allowedModule := range allowlist {
+		if allowedModule == moduleID {
+			isAllowed = true
+			break
+		}
+	}
+
+	if !isAllowed {
+		log.Debug().
+			Str("module", moduleID).
+			Msg("module not in allowlist")
+		return false
+	}
+
 	// we don't currently support market priced resource offers
 	if resourceOffer.Mode == data.MarketPrice {
 		log.Trace().
@@ -123,6 +146,7 @@ func doOffersMatch(
 
 func getMatchingDeals(
 	db store.SolverStore,
+	allowlist allowlist.Allowlist,
 ) ([]data.Deal, error) {
 	deals := []data.Deal{}
 
@@ -140,10 +164,7 @@ func getMatchingDeals(
 		return nil, err
 	}
 
-	// loop over job offers
 	for _, jobOffer := range jobOffers {
-
-		// loop over resource offers
 		matchingResourceOffers := []data.ResourceOffer{}
 		for _, resourceOffer := range resourceOffers {
 			decision, err := db.GetMatchDecision(resourceOffer.ID, jobOffer.ID)
@@ -151,12 +172,11 @@ func getMatchingDeals(
 				return nil, err
 			}
 
-			// if this exists it means we've already tried to match the two elements and should not try again
 			if decision != nil {
 				continue
 			}
 
-			if doOffersMatch(resourceOffer.ResourceOffer, jobOffer.JobOffer) {
+			if doOffersMatch(resourceOffer.ResourceOffer, jobOffer.JobOffer, allowlist) {
 				matchingResourceOffers = append(matchingResourceOffers, resourceOffer.ResourceOffer)
 			} else {
 				_, err := db.AddMatchDecision(resourceOffer.ID, jobOffer.ID, "", false)
@@ -166,10 +186,7 @@ func getMatchingDeals(
 			}
 		}
 
-		// yay - we've got some matching resource offers
-		// let's choose the cheapest one
 		if len(matchingResourceOffers) > 0 {
-			// now let's order the matching resource offers by price
 			sort.Sort(ListOfResourceOffers(matchingResourceOffers))
 
 			cheapestResourceOffer := matchingResourceOffers[0]
@@ -178,9 +195,7 @@ func getMatchingDeals(
 				return nil, err
 			}
 
-			// add the match decision for this job offer
 			for _, matchingResourceOffer := range matchingResourceOffers {
-
 				addDealID := ""
 				if cheapestResourceOffer.ID == matchingResourceOffer.ID {
 					addDealID = deal.ID
@@ -195,12 +210,6 @@ func getMatchingDeals(
 			deals = append(deals, deal)
 		}
 	}
-
-	log.Debug().
-		Int("jobOffers", len(jobOffers)).
-		Int("resourceOffers", len(resourceOffers)).
-		Int("deals", len(deals)).
-		Msgf(system.GetServiceString(system.SolverService, "Solver solving"))
 
 	return deals, nil
 }

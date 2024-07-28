@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/lilypad-tech/lilypad/pkg/allowlist"
 	"github.com/lilypad-tech/lilypad/pkg/data"
 	"github.com/lilypad-tech/lilypad/pkg/metricsDashboard"
 	"github.com/lilypad-tech/lilypad/pkg/solver/store"
@@ -47,6 +48,7 @@ type SolverController struct {
 	solverEventSubs []func(SolverEvent)
 	options         SolverOptions
 	log             *system.ServiceLogger
+	allowlist       allowlist.Allowlist
 }
 
 // the background "even if we have not heard of an event" loop
@@ -66,6 +68,15 @@ func NewSolverController(
 		store:      store,
 		options:    options,
 		log:        system.NewServiceLogger(system.SolverService),
+	}
+
+	// pull the allowlist
+
+	allowlist, err := allowlist.PullAllowlist()
+	if err != nil {
+		log.Warn().Err(err).Msg("Failed to pull allowlist, proceeding without it")
+	} else {
+		controller.allowlist = allowlist
 	}
 	return controller, nil
 }
@@ -268,7 +279,7 @@ func (controller *SolverController) registerAsSolver() error {
 
 func (controller *SolverController) solve() error {
 	// find out which deals we can make from matching the offers
-	deals, err := getMatchingDeals(controller.store)
+	deals, err := getMatchingDeals(controller.store, controller.allowlist)
 	if err != nil {
 		return err
 	}

@@ -3,6 +3,7 @@ package solver
 import (
 	"testing"
 
+	"github.com/lilypad-tech/lilypad/pkg/allowlist"
 	"github.com/lilypad-tech/lilypad/pkg/data"
 )
 
@@ -135,7 +136,8 @@ func TestDoOffersMatch(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result := doOffersMatch(tc.resourceOffer(basicResourceOffer), tc.jobOffer(basicJobOffer))
+			// Use an empty slice for allowlist instead of a pointer to a struct
+			result := doOffersMatch(tc.resourceOffer(basicResourceOffer), tc.jobOffer(basicJobOffer), allowlist.Allowlist{})
 			if result != tc.shouldMatch {
 				t.Errorf("Expected match to be %v, but got %v", tc.shouldMatch, result)
 			}
