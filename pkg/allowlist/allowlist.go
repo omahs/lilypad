@@ -12,22 +12,21 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-type AllowlistJSON struct {
-	Modules []string `json:"modules"`
+type AllowlistItem struct {
+	ModuleId string `json:"ModuleId"`
+	Version  string `json:"Version"`
+	Enabled  bool   `json:"Enabled"`
 }
 
-type Allowlist []string
+type Allowlist map[string]string
 
 func PullAllowlist() (Allowlist, error) {
-	// Hardcoded URL for the Lilypad-Tech module allowlist
 	url := "https://raw.githubusercontent.com/Lilypad-Tech/module-allowlist/main/allowlist.json"
 
-	// Create a client with a timeout
 	client := &http.Client{
 		Timeout: 10 * time.Second,
 	}
 
-	// Make the HTTP request
 	resp, err := client.Get(url)
 	if err != nil {
 		log.Error().Err(err).Str("url", url).Msg("Failed to make HTTP request")
@@ -35,35 +34,34 @@ func PullAllowlist() (Allowlist, error) {
 	}
 	defer resp.Body.Close()
 
-	// Check the status code
 	if resp.StatusCode != http.StatusOK {
 		log.Error().Int("statusCode", resp.StatusCode).Str("url", url).Msg("Received non-OK status code")
 		return nil, fmt.Errorf("failed to fetch allowlist: HTTP %d", resp.StatusCode)
 	}
 
-	// Read the response body
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to read response body")
 		return nil, fmt.Errorf("failed to read response body: %v", err)
 	}
 
-	// Unmarshal the JSON
-	var allowlistJSON AllowlistJSON
-	if err := json.Unmarshal(body, &allowlistJSON); err != nil {
+	var allowlistItems []AllowlistItem
+	if err := json.Unmarshal(body, &allowlistItems); err != nil {
 		log.Error().Err(err).Str("body", string(body)).Msg("Failed to unmarshal JSON")
 		return nil, fmt.Errorf("failed to unmarshal allowlist: %v", err)
 	}
 
-	// Check if the modules list is empty
-	if len(allowlistJSON.Modules) == 0 {
+	allowlist := make(Allowlist)
+	for _, item := range allowlistItems {
+		if item.Enabled {
+			allowlist[item.ModuleId] = item.Version
+		}
+	}
+
+	if len(allowlist) == 0 {
 		log.Warn().Msg("Allowlist is empty")
 	}
 
-	// Convert AllowlistJSON to Allowlist
-	allowlist := Allowlist(allowlistJSON.Modules)
-
-	// Save the allowlist to a local file
 	saveDir := filepath.Join(os.TempDir(), "lilypad-allowlist")
 	if err := os.MkdirAll(saveDir, 0755); err != nil {
 		log.Error().Err(err).Str("dir", saveDir).Msg("Failed to create directory")

@@ -2,6 +2,7 @@ package solver
 
 import (
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/lilypad-tech/lilypad/pkg/allowlist"
@@ -11,6 +12,14 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+func extractVersion(module data.ModuleConfig) string {
+	parts := strings.Split(module.Name, ":")
+	if len(parts) > 1 {
+		return parts[1]
+	}
+	return ""
+}
+
 type ListOfResourceOffers []data.ResourceOffer
 
 func (a ListOfResourceOffers) Len() int { return len(a) }
@@ -18,6 +27,40 @@ func (a ListOfResourceOffers) Less(i, j int) bool {
 	return a[i].DefaultPricing.InstructionPrice < a[j].DefaultPricing.InstructionPrice
 }
 func (a ListOfResourceOffers) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+
+func compareVersions(v1, v2 string) int {
+	v1Parts := strings.Split(strings.TrimPrefix(v1, "v"), ".")
+	v2Parts := strings.Split(strings.TrimPrefix(v2, "v"), ".")
+
+	for i := 0; i < len(v1Parts) && i < len(v2Parts); i++ {
+		n1, err1 := strconv.Atoi(v1Parts[i])
+		n2, err2 := strconv.Atoi(v2Parts[i])
+
+		if err1 != nil || err2 != nil {
+			// If we can't parse the version numbers, fall back to string comparison
+			if v1Parts[i] < v2Parts[i] {
+				return -1
+			} else if v1Parts[i] > v2Parts[i] {
+				return 1
+			}
+			continue
+		}
+
+		if n1 < n2 {
+			return -1
+		} else if n1 > n2 {
+			return 1
+		}
+	}
+
+	if len(v1Parts) < len(v2Parts) {
+		return -1
+	} else if len(v1Parts) > len(v2Parts) {
+		return 1
+	}
+
+	return 0
+}
 
 // the most basic of matchers
 // basically just check if the resource offer >= job offer cpu, gpu & ram
@@ -90,18 +133,28 @@ func doOffersMatch(
 		return false
 	}
 
-	isAllowed := false
-	for _, allowedModule := range allowlist {
-		if allowedModule == moduleID {
-			isAllowed = true
-			break
-		}
-	}
-
+	allowedVersion, isAllowed := allowlist[moduleID]
 	if !isAllowed {
 		log.Debug().
 			Str("module", moduleID).
 			Msg("module not in allowlist")
+		return false
+	}
+
+	// Extract version from jobOffer.Module
+	jobVersion := extractVersion(jobOffer.Module)
+	if jobVersion == "" {
+		log.Error().Interface("module", jobOffer.Module).Msg("unable to extract version from job offer module")
+		return false
+	}
+
+	// Check if the job offer version matches or is greater than the allowed version
+	if compareVersions(jobVersion, allowedVersion) < 0 {
+		log.Debug().
+			Str("module", moduleID).
+			Str("allowedVersion", allowedVersion).
+			Str("jobVersion", jobVersion).
+			Msg("job offer version is less than allowed version")
 		return false
 	}
 
