@@ -12,10 +12,11 @@ import (
 )
 
 type SolverOptions struct {
-	Web3          web3.Web3Options
-	Server        http.ServerOptions
-	Services      data.ServiceConfig
-	AllowlistRepo string
+	Web3            web3.Web3Options
+	Server          http.ServerOptions
+	Services        data.ServiceConfig
+	AllowlistRepo   string
+	EnableAllowlist bool
 }
 
 type Solver struct {

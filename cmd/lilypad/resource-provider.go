@@ -21,15 +21,21 @@ func newResourceProviderCmd() *cobra.Command {
 			optionsfactory.CheckDeprecation(options.Offers.Services, options.Web3)
 
 			network, _ := cmd.Flags().GetString("network")
+			enableAllowlist, _ := cmd.Flags().GetBool("enable-allowlist")
 			options, err := optionsfactory.ProcessResourceProviderOptions(options, network)
 			if err != nil {
 				return err
 			}
+
+			options.Allowlist.EnableAllowlist = enableAllowlist
 			return runResourceProvider(cmd, options)
 		},
 	}
 
 	optionsfactory.AddResourceProviderCliFlags(resourceProviderCmd, &options)
+
+	// Add the enable-allowlist flag
+	resourceProviderCmd.Flags().Bool("enable-allowlist", false, "Enable or disable the allowlist")
 
 	return resourceProviderCmd
 }
