@@ -136,8 +136,20 @@ func TestDoOffersMatch(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			// Use an empty slice for allowlist instead of a pointer to a struct
-			result := doOffersMatch(tc.resourceOffer(basicResourceOffer), tc.jobOffer(basicJobOffer), allowlist.Allowlist{})
+			resourceOffer := tc.resourceOffer(basicResourceOffer)
+			jobOffer := tc.jobOffer(basicJobOffer)
+
+			// Create a mock allowlist for testing
+			mockAllowlist := allowlist.Allowlist{
+				jobOffer.Module.Name: "v1.0.0", // Assume all modules are allowed for this test
+			}
+
+			// Set the global allowlist for testing
+			allowlist.GlobalAllowlist = mockAllowlist
+
+			// Update this line to match the new function signature
+			result := doOffersMatch(resourceOffer, jobOffer, true)
+
 			if result != tc.shouldMatch {
 				t.Errorf("Expected match to be %v, but got %v", tc.shouldMatch, result)
 			}

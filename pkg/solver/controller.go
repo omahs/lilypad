@@ -48,7 +48,8 @@ type SolverController struct {
 	solverEventSubs []func(SolverEvent)
 	options         SolverOptions
 	log             *system.ServiceLogger
-	allowlist       allowlist.Allowlist
+	EnableAllowlist bool
+	allowlist       allowlist.Allowlist // Add this line
 }
 
 // the background "even if we have not heard of an event" loop
@@ -63,21 +64,23 @@ func NewSolverController(
 	options SolverOptions,
 ) (*SolverController, error) {
 	controller := &SolverController{
-		web3SDK:    web3SDK,
-		web3Events: web3.NewEventChannels(),
-		store:      store,
-		options:    options,
-		log:        system.NewServiceLogger(system.SolverService),
-		allowlist:  nil, // Initialize as nill
+		web3SDK:         web3SDK,
+		web3Events:      web3.NewEventChannels(),
+		store:           store,
+		options:         options,
+		log:             system.NewServiceLogger(system.SolverService),
+		EnableAllowlist: options.EnableAllowlist,
+		allowlist:       nil, // Initialize as nil
 	}
 
-	// pull the allowlist
-	allowlist, err := allowlist.PullAllowlist()
+	// Pull the allowlist
+	err := allowlist.PullAllowlist()
 	if err != nil {
 		log.Warn().Err(err).Msg("Failed to pull allowlist, proceeding without it")
 	} else {
-		controller.allowlist = allowlist
+		controller.allowlist = allowlist.GlobalAllowlist
 	}
+
 	return controller, nil
 }
 
@@ -266,20 +269,19 @@ func (controller *SolverController) registerAsSolver() error {
 }
 
 /*
- *
- *
- *
+*
+*
+*
 
- Solve
+# Solve
 
- *
- *
- *
+*
+*
+*
 */
-
 func (controller *SolverController) solve() error {
 	// find out which deals we can make from matching the offers
-	deals, err := getMatchingDeals(controller.store, controller.allowlist)
+	deals, err := getMatchingDeals(controller.store, controller.EnableAllowlist)
 	if err != nil {
 		return err
 	}
