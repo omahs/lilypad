@@ -18,6 +18,8 @@ func NewResourceProviderOptions() resourceprovider.ResourceProviderOptions {
 		Pow:      GetDefaultResourceProviderPowOptions(),
 	}
 	options.Web3.Service = system.ResourceProviderService
+	options.Offers.EnableAllowlist = GetDefaultServeOptionBool("ENABLE_ALLOWLIST", false)
+
 	return options
 }
 
@@ -30,6 +32,11 @@ func GetDefaultResourceProviderPowOptions() resourceprovider.ResourceProviderPow
 		CudaBlockSize:      GetDefaultServeOptionInt("CUDA_BLOCK_SIZE", 1024),
 		CudaHashsPerThread: GetDefaultServeOptionInt("CUDA_HASH_PER_THREAD", 1000),
 	}
+}
+func GetDefaultResourceProviderAllowlistOptions() resourceprovider.ResourceProviderOptions {
+	options := NewResourceProviderOptions()
+	options.Offers.EnableAllowlist = GetDefaultServeOptionBool("ENABLE_ALLOWLIST", false)
+	return options
 }
 
 func GetDefaultResourceProviderOfferOptions() resourceprovider.ResourceProviderOfferOptions {
@@ -126,12 +133,6 @@ func AddResourceProviderCliFlags(cmd *cobra.Command, options *resourceprovider.R
 func AddPowSignalCliFlags(cmd *cobra.Command, options *PowSignalOptions) {
 	AddWeb3CliFlags(cmd, &options.Web3)
 }
-func AddResourceProviderAllowlistCliFlags(cmd *cobra.Command, options *resourceprovider.ResourceProviderOptions) {
-	cmd.PersistentFlags().BoolVar(
-		&options.Offers.EnableAllowlist, "enable-allowlist", options.Offers.EnableAllowlist,
-		`Enable allowlist for job creation (ENABLE_ALLOWLIST).`,
-	)
-}
 
 func CheckResourceProviderOfferOptions(options resourceprovider.ResourceProviderOfferOptions) error {
 	// loop over all specs and add up the total number of cpus
@@ -199,7 +200,12 @@ func ProcessResourceProviderOptions(options resourceprovider.ResourceProviderOpt
 	if err != nil {
 		return options, err
 	}
+
+	// Preserve the EnableAllowlist value
+	enableAllowlist := options.Offers.EnableAllowlist
 	options.Offers = newOfferOptions
+	options.Offers.EnableAllowlist = enableAllowlist // Reassign the preserved value
+
 	newWeb3Options, err := ProcessWeb3Options(options.Web3, network)
 	if err != nil {
 		return options, err

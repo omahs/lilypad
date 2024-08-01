@@ -22,20 +22,20 @@ func newResourceProviderCmd() *cobra.Command {
 
 			network, _ := cmd.Flags().GetString("network")
 			enableAllowlist, _ := cmd.Flags().GetBool("enable-allowlist")
-			options, err := optionsfactory.ProcessResourceProviderOptions(options, network)
+
+			processedOptions, err := optionsfactory.ProcessResourceProviderOptions(options, network)
 			if err != nil {
 				return err
 			}
 
-			options.Allowlist.EnableAllowlist = enableAllowlist
-			return runResourceProvider(cmd, options)
+			// Set the EnableAllowlist field in the Offers struct
+			processedOptions.Offers.EnableAllowlist = enableAllowlist
+
+			return runResourceProvider(cmd, processedOptions)
 		},
 	}
 
 	optionsfactory.AddResourceProviderCliFlags(resourceProviderCmd, &options)
-
-	// Add the enable-allowlist flag
-	resourceProviderCmd.Flags().Bool("enable-allowlist", false, "Enable or disable the allowlist")
 
 	return resourceProviderCmd
 }
