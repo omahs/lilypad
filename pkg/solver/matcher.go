@@ -46,6 +46,15 @@ func doOffersMatch(
 			Msgf("did not match GPU")
 		return false
 	}
+	if resourceOffer.ResourceProvider != jobOffer.Module.Path {
+		log.Trace().
+			Str("resource offer", resourceOffer.ID).
+			Str("job offer", jobOffer.ID).
+			Int("resource GPU", resourceOffer.Spec.GPU).
+			Int("job GPU", jobOffer.Spec.GPU).
+			Msgf("did not match GPU")
+		return false
+	}
 	if resourceOffer.Spec.RAM < jobOffer.Spec.RAM {
 		log.Trace().
 			Str("resource offer", resourceOffer.ID).

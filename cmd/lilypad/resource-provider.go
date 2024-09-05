@@ -28,7 +28,6 @@ func newResourceProviderCmd() *cobra.Command {
 				return err
 			}
 
-			// Set the EnableAllowlist field in the Offers struct
 			processedOptions.Offers.EnableAllowlist = enableAllowlist
 
 			return runResourceProvider(cmd, processedOptions)

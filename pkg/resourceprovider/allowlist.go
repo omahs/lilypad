@@ -9,6 +9,4 @@ type ResourceProviderAllowlistOptions struct {
 }
 
 func AddResourceProviderCliFlags(cmd *cobra.Command, options *ResourceProviderOptions) {
-	//allowlistCmd(cmd, options.ToggleAllowlist)
-
 }

@@ -57,6 +57,11 @@ type ResourceProviderOfferOptions struct {
 	EnableAllowlist bool
 }
 
+//    Arichitecture of how we want it to be=
+
+// Allowlist Array of Modules- this list gets carried over to the
+// matcher and when you're trying to do a check against, is this in this array,
+
 // this configures the pow we will keep track of
 type ResourceProviderPowOptions struct {
 	DisablePow bool

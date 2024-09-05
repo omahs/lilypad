@@ -414,6 +414,7 @@ func (controller *SolverController) addDeal(deal data.Deal) (*data.DealContainer
 *
 *
 */
+
 func (controller *SolverController) updateJobOfferState(id string, dealID string, state uint8) (*data.JobOfferContainer, error) {
 	controller.log.Info("update job offer", fmt.Sprintf("%s %s", id, data.GetAgreementStateString(state)))
 
